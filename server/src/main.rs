@@ -14,20 +14,6 @@ async fn main() {
     let config = parse_args();
     colog::basic_builder().filter(None, config.log_level).init();
 
-    let mut store = KVStore::new(4);
-    store.insert(10001);
-    dbg!(&store);
-    store.insert(10002);
-    dbg!(&store);
-    store.insert(10003);
-    dbg!(&store);
-    store.insert(10004);
-    dbg!(&store);
-    store.insert(10005);
-    dbg!(&store);
-
-    dbg!(store.get(23423));
-
     let listener = TcpListener::bind(format!("127.0.0.1:{}", config.port))
         .await
         .expect("should be able to bind");
