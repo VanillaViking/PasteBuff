@@ -14,6 +14,21 @@ async fn main() {
     let config = parse_args();
     colog::basic_builder().filter(None, config.log_level).init();
 
+    let mut store = KVStore::new(4);
+    store.insert("basdf".to_owned(), 10001);
+    dbg!(&store);
+    store.insert("cda".to_owned(), 10002);
+    dbg!(&store);
+    store.insert("bd".to_owned(), 10003);
+    dbg!(store.get("cda"));
+    dbg!(&store);
+    store.insert("adf".to_owned(), 10004);
+    dbg!(&store);
+    store.insert("baa".to_owned(), 10005);
+    dbg!(&store);
+
+    dbg!(store.array_get(23423));
+
     let listener = TcpListener::bind(format!("127.0.0.1:{}", config.port))
         .await
         .expect("should be able to bind");
