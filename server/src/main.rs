@@ -7,6 +7,7 @@ use tokio::{
 
 mod config;
 mod store;
+mod conn;
 use config::parse_args;
 
 #[tokio::main]

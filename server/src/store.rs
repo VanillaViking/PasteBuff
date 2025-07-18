@@ -8,7 +8,7 @@ where
     V: Clone,
     K: Eq + Hash
 {
-    buffer: Vec<Option<Clipboard<V>>>,
+    buffer: Vec<Option<Clipboard<K, V>>>,
     map: HashMap<K, usize>,
     capacity: usize,
     length: usize,
@@ -17,11 +17,12 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub struct Clipboard<T>
+pub struct Clipboard<K,V>
 where
-    T: Clone,
+    V: Clone,
 {
-    value: T,
+    key: K,
+    value: V,
     next: Option<usize>,
     prev: Option<usize>,
 }
@@ -35,7 +36,7 @@ pub enum StoreArrayError {
 impl<K, V> KVStore<K, V>
 where
     V: Clone,
-    K: Eq + Hash,
+    K: Eq + Hash + Clone,
 {
     pub fn new(capacity: usize) -> Self {
         KVStore {
@@ -48,11 +49,15 @@ where
         }
     }
 
+    pub fn size(&self) -> usize {
+        self.length
+    }
+
     pub fn insert(&mut self, key: K, value: V) {
         if let Some(idx) = self.map.get(&key) {
             self.buffer[*idx].as_mut().expect("should exist").value = value;
         } else {
-            let val_idx = self.array_insert(value);
+            let val_idx = self.array_insert(key.clone(), value);
             self.map.insert(key, val_idx);
         }
     }
@@ -67,9 +72,10 @@ where
         self.array_get(array_idx)
     }
 
-    fn array_insert(&mut self, value: V) -> usize {
+    fn array_insert(&mut self, key: K, value: V) -> usize {
         if self.buffer[self.head].is_none() {
             self.buffer[self.head] = Some(Clipboard {
+                key,
                 value,
                 next: None,
                 prev: None,
@@ -83,6 +89,7 @@ where
                 .expect("tail should not be None")
                 .next = Some(self.length);
             self.buffer[self.length] = Some(Clipboard {
+                key,
                 value,
                 next: None,
                 prev: Some(self.tail),
@@ -96,6 +103,7 @@ where
                 .next
                 .expect("capacity must be greater than 1");
             self.buffer[self.head] = Some(Clipboard {
+                key,
                 value,
                 next: None,
                 prev: Some(self.tail),
