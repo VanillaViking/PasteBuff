@@ -1,4 +1,4 @@
-use std::{collections::HashMap, hash::Hash};
+use std::{borrow::Borrow, collections::HashMap, hash::Hash};
 
 use thiserror::Error;
 
@@ -57,7 +57,11 @@ where
         }
     }
 
-    pub fn get(&mut self, key: &K) -> Option<&V> {
+    pub fn get<Q>(&mut self, key: &Q) -> Option<&V> 
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
         let array_idx = self.map.get(key)?.clone();
         self.touch(array_idx).ok()?;
         self.array_get(array_idx)
@@ -77,13 +81,13 @@ where
             self.buffer[self.tail]
                 .as_mut()
                 .expect("tail should not be None")
-                .next = Some(self.tail + 1);
-            self.buffer[self.tail + 1] = Some(Clipboard {
+                .next = Some(self.length);
+            self.buffer[self.length] = Some(Clipboard {
                 value,
                 next: None,
                 prev: Some(self.tail),
             });
-            self.tail += 1;
+            self.tail = self.length;
             self.length += 1;
         } else {
             let next_head = self.buffer[self.head]

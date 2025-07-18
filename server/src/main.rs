@@ -27,7 +27,7 @@ async fn main() {
     store.insert("baa".to_owned(), 10005);
     dbg!(&store);
 
-    dbg!(store.array_get(23423));
+    // dbg!(store.array_get(23423));
 
     let listener = TcpListener::bind(format!("127.0.0.1:{}", config.port))
         .await
