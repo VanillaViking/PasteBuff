@@ -97,6 +97,9 @@ where
             self.tail = self.length;
             self.length += 1;
         } else {
+            let head_key = &self.buffer[self.head].as_ref().expect("head exists").key;
+            self.map.remove(head_key);
+
             let next_head = self.buffer[self.head]
                 .as_ref()
                 .expect("head exists")
