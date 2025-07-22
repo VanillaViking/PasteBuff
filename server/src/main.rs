@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use log::{debug, error, info};
+use server::{Handler, Request};
 use store::KVStore;
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
@@ -8,8 +9,8 @@ use tokio::{
 };
 
 mod config;
+mod server;
 mod store;
-mod conn;
 use config::parse_args;
 
 #[tokio::main]
@@ -19,21 +20,11 @@ async fn main() {
 
     let store = Arc::new(Mutex::new(KVStore::new(4)));
     {
-        store.lock().unwrap().insert("adsf".to_owned(), "be".to_owned());
+        store
+            .lock()
+            .unwrap()
+            .insert("adsf".to_owned(), "be".to_owned());
     }
-    // store.insert("basdf".to_owned(), 10001);
-    // dbg!(&store);
-    // store.insert("cda".to_owned(), 10002);
-    // dbg!(&store);
-    // store.insert("bd".to_owned(), 10003);
-    // dbg!(store.get("cda"));
-    // dbg!(&store);
-    // store.insert("adf".to_owned(), 10004);
-    // dbg!(&store);
-    // store.insert("baa".to_owned(), 10005);
-    // dbg!(&store);
-
-    // dbg!(store.array_get(23423));
 
     let listener = TcpListener::bind(format!("127.0.0.1:{}", config.port))
         .await
@@ -45,10 +36,10 @@ async fn main() {
             let _ = socket
                 .peer_addr()
                 .inspect(|addr| info!("Connection established to {}", addr));
-            
-            let store_lock = store.clone();
+
+            let mut handler = Handler::new(socket, store.clone());
             tokio::spawn(async move {
-                conn::handle_stream(socket, store_lock).await;
+                handler.handle_stream().await;
             });
         } else {
             error!("Could not accept connection");

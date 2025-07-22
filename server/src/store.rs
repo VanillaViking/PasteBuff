@@ -6,7 +6,7 @@ use thiserror::Error;
 pub struct KVStore<K, V>
 where
     V: Clone,
-    K: Eq + Hash
+    K: Eq + Hash,
 {
     buffer: Vec<Option<Clipboard<K, V>>>,
     map: HashMap<K, usize>,
@@ -17,7 +17,7 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub struct Clipboard<K,V>
+pub struct Clipboard<K, V>
 where
     V: Clone,
 {
@@ -62,7 +62,7 @@ where
         }
     }
 
-    pub fn get<Q>(&mut self, key: &Q) -> Option<&V> 
+    pub fn get<Q>(&mut self, key: &Q) -> Option<&V>
     where
         K: Borrow<Q>,
         Q: Hash + Eq + ?Sized,
