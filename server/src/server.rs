@@ -6,7 +6,7 @@ use std::{
 use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
 use tokio::{
-    io::{AsyncBufReadExt, AsyncReadExt, BufReader},
+    io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
     net::TcpStream,
 };
 
@@ -18,6 +18,14 @@ pub enum Request {
     Set { key: String, val: String },
     Size,
     Stop,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Response {
+    GetResponse(String),
+    SetResponse(String),
+    SizeResponse(u32),
+    Error(String),
 }
 
 pub struct Handler {
@@ -45,12 +53,27 @@ impl Handler {
             let request = self.read_request().await;
             dbg!(&request);
 
-            if let Some(Request::Stop) = request {
-                break;
+            if request.is_none() {
+                continue;
             }
-        }
 
-        // match request
+
+            let response = match request.expect("checked") {
+                Request::Get(get_str) => {
+                    let mut store = self.store.lock().expect("Could not acquire store lock");
+                    if let Some(val) = store.get(&get_str) {
+                        Response::GetResponse(val.to_owned())
+                    } else {
+                        Response::Error(format!("Could not find key {} in store", get_str)) 
+                    }
+                },
+                Request::Set { key, val } => todo!(),
+                Request::Size => todo!(),
+                Request::Stop => break,
+            };
+
+            self.send_response(response);
+        }
     }
 
     async fn read_request(&mut self) -> Option<Request> {
@@ -95,5 +118,10 @@ impl Handler {
         }
     }
 
-    fn parse_msg(msg: &str) {}
+    fn send_response(&mut self, response: Response) {
+        let msg_str = serde_json::to_string(&response).expect("Failed to parse response object");
+        let msg_len = msg_str.len();
+        self.reader.write_u32(msg_len as u32);
+        self.reader.write_all(msg_str.as_bytes());
+    }
 }

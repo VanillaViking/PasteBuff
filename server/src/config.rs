@@ -10,7 +10,7 @@ use log::LevelFilter;
 pub struct Config {
     pub port: u16,
     pub log_level: LevelFilter,
-    pub store_size: u32,
+    pub store_size: usize,
     pub db_file: PathBuf,
 }
 
@@ -56,7 +56,7 @@ pub fn parse_args() -> Config {
                 n += 1
             }
             "-s" | "--store-size" => {
-                if let Ok(s) = args[n + 1].parse::<u32>() {
+                if let Ok(s) = args[n + 1].parse::<usize>() {
                     config.store_size = s;
                     n += 1;
                 } else {

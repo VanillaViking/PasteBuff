@@ -18,13 +18,7 @@ async fn main() {
     let config = parse_args();
     colog::basic_builder().filter(None, config.log_level).init();
 
-    let store = Arc::new(Mutex::new(KVStore::new(4)));
-    {
-        store
-            .lock()
-            .unwrap()
-            .insert("adsf".to_owned(), "be".to_owned());
-    }
+    let store = Arc::new(Mutex::new(KVStore::new(config.store_size)));
 
     let listener = TcpListener::bind(format!("127.0.0.1:{}", config.port))
         .await
