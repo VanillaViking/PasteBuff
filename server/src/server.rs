@@ -67,12 +67,19 @@ impl Handler {
                         Response::Error(format!("Could not find key {} in store", get_str)) 
                     }
                 },
-                Request::Set { key, val } => todo!(),
-                Request::Size => todo!(),
+                Request::Set { key, val } => {
+                    let mut store = self.store.lock().expect("Could not acquire store lock");
+                    store.insert(key.clone(), val.clone());
+                    Response::SetResponse(format!("Inserted {}:{}", key, val))
+                },
+                Request::Size => {
+                    let store = self.store.lock().expect("Could not acquire store lock");
+                    Response::SizeResponse(store.size() as u32)
+                },
                 Request::Stop => break,
             };
 
-            self.send_response(response);
+            self.send_response(response).await;
         }
     }
 
@@ -118,10 +125,10 @@ impl Handler {
         }
     }
 
-    fn send_response(&mut self, response: Response) {
+    async fn send_response(&mut self, response: Response) {
         let msg_str = serde_json::to_string(&response).expect("Failed to parse response object");
         let msg_len = msg_str.len();
-        self.reader.write_u32(msg_len as u32);
-        self.reader.write_all(msg_str.as_bytes());
+        self.reader.write_u32(msg_len as u32).await;
+        self.reader.write_all(msg_str.as_bytes()).await;
     }
 }
