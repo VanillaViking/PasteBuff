@@ -1,5 +1,7 @@
-use std::{env, fs::{self, File, OpenOptions}, io::Write};
+use std::{env, fs::{self, File, OpenOptions}, io::{Read, Write}, net::TcpStream, os::unix::net::SocketAddr};
 
+use anyhow::Result;
+use anyhow::anyhow;
 use clap::{Parser, Subcommand};
 /// Command line utility to access the PasteBuff store
 #[derive(Parser, Debug)]
@@ -43,4 +45,14 @@ fn main() {
             storage.write_all(addr.as_bytes()).expect("Could not write to storage");
         },
     }
+}
+
+fn connect() -> anyhow::Result<TcpStream> {
+    let mut store_path = env::home_dir().ok_or(anyhow!("no home dir"))?;
+    store_path.push(".local/share/pbcli/server");
+    
+    let addr = fs::read_to_string(store_path)?;
+
+    let stream = TcpStream::connect(&addr)?;
+    Ok(stream)
 }
