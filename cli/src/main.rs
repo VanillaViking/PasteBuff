@@ -2,6 +2,7 @@ use std::{env, fs::{self, OpenOptions}, io::{Read, Write}, net::TcpStream};
 
 use anyhow::Result;
 use anyhow::anyhow;
+use arboard::Clipboard;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
@@ -46,19 +47,49 @@ pub enum Response {
     Error(String),
 }
 
+impl Response {
+    pub fn display(&self) {
+        match self {
+            Response::GetResponse(get) => println!("{}", get),
+            Response::SetResponse(set) => println!("{}", set),
+            Response::SizeResponse(size) => println!("{}", size),
+            Response::Error(e) => eprintln!("{}", e),
+        }
+    }
+}
+
 fn main() {
     let args = Cli::parse();
+    
 
     match args.command {
-        Commands::Get { key } => todo!(),
-        Commands::Set { key } => todo!(),
+        Commands::Get { key } => {
+            let mut stream = connect().expect("Could not connect to server");
+            let req = Request::Get(key);
+            send_request(&mut stream, &req).expect("failed to send request");
+            match handle_response(&mut stream) {
+                Ok(()) => (),
+                Err(e) => eprintln!("{}", e.to_string()),
+            }
+
+        },
+        Commands::Set { key } => {
+            let mut stream = connect().expect("Could not connect to server");
+            let mut clipboard = Clipboard::new().expect("Clipboard not supported");
+            // println!("Clipboard text was: {}", clipboard.get_text());
+            if let Ok(text) = clipboard.get_text() {
+                let req = Request::Set { key: key, val: text };
+                send_request(&mut stream, &req).expect("failed to send request");
+            }
+            match handle_response(&mut stream) {
+                Ok(()) => (),
+                Err(e) => eprintln!("{}", e.to_string()),
+            }
+        },
         Commands::Size => {
             let mut stream = connect().expect("Could not connect to server");
             let req = Request::Size;
-            
-            let msg_str = serde_json::to_string(&req).expect("Could not encode request");
-            stream.write_u32::<BigEndian>(msg_str.len() as u32).expect("Could not write to stream");
-            stream.write_all(msg_str.as_bytes()).expect("Could not write to stream");
+            send_request(&mut stream, &req).expect("failed to send request");
             match handle_response(&mut stream) {
                 Ok(()) => (),
                 Err(e) => eprintln!("{}", e.to_string()),
@@ -76,17 +107,22 @@ fn main() {
     }
 }
 
+fn send_request(stream: &mut TcpStream, req: &Request) -> anyhow::Result<()> {
+    let msg_str = serde_json::to_string(req)?;
+    stream.write_u32::<BigEndian>(msg_str.len() as u32)?;
+    stream.write_all(msg_str.as_bytes())?;
+
+    Ok(())
+}
+
 fn handle_response(stream: &mut TcpStream) -> anyhow::Result<()> {
     let res_len = stream.read_u32::<BigEndian>()?;
     let mut res_buf = vec![0u8; res_len as usize];
     stream.read_exact(&mut res_buf)?;
+
     let response = serde_json::from_str::<Response>(&String::from_utf8(res_buf)?)?;
-    
-    dbg!(response);
-
+    response.display();
     Ok(())
-
-
 }
 
 fn connect() -> anyhow::Result<TcpStream> {

@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.98"
+arboard = "3.6.0"
 byteorder = "1.5.0"
 clap = { version = "4.5.41", features = ["derive"] }
 serde = { version = "1.0.219", features = ["derive"] }
